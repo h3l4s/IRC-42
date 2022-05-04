@@ -25,9 +25,12 @@ int main(void){
 	std::cout << "connected." << std::endl;
 
 	User user;
-	std::vector<char> buffer(4096);
+	uint32_t dataLength;
+	recv(socketClient , &dataLength,sizeof(uint32_t),0); // Receive the message length
+	dataLength = ntohl(dataLength );
+	std::vector<char> buffer(dataLength);
 
-	recv(socketClient, &buffer[0], 37, 0);
+	recv(socketClient, &buffer[0], dataLength, 0);
 
 	std::string rcvString;
 	rcvString.append(buffer.begin(), buffer.end());

@@ -1,3 +1,4 @@
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -20,6 +21,8 @@ void *function(void *arg){
 	//const char msg[] = "what's your name and how old are you";
 	const std::string msg = "what's your name and how old are you";
 	User user;
+	uint32_t dataLength = htonl(msg.size());
+	send(socket , &dataLength ,sizeof(uint32_t) , 0);
 	send(socket, msg.c_str(), msg.size(), 0);
 	recv(socket, &user, sizeof(user), 0);
 	std::cout << "client's name: " << user.nom << " | client's age: " << user.age << " years old." << std::endl;
