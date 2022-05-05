@@ -15,7 +15,13 @@
 #include <thread>
 #include <string.h>
 
-typedef struct User{
+typedef struct Msg{
     int     len;
     char    msg[500];
+} Msg;
+
+typedef struct User{
+    int age;
+    char name[30];
+    int socket[3];
 } User;
