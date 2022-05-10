@@ -7,10 +7,7 @@ int main()
 
 	server.setup();
 
-    User user;
 	int i = 1;
-	server._fds[0].fd = server._serverSocket;
-	server._fds[0].events = POLLIN;
     while(1)
     {
 		int e = poll(server._fds, i, 10);

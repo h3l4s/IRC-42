@@ -18,6 +18,8 @@ void Server::setup() {
     std::cout << "bind ; " << this->_serverSocket << std::endl;
     listen(this->_serverSocket, 5);
     std::cout << "listen" << std::endl;
+	this->_fds[0].fd = this->_serverSocket;
+	this->_fds[0].events = POLLIN;
 }
 
 int Server::addUser(int i) {
