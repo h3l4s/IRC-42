@@ -1,71 +1,49 @@
-#include "utils.hpp"
+#include "server.hpp"
 
+Server::Server(void) {
+	return ;
+}
 
-int main()
-{
-    int socketServer = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in addrServer;
+Server::~Server(void) {
+	return ;
+}
 
-    addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
-    addrServer.sin_family = AF_INET;
-    addrServer.sin_port = htons(30003);
+void Server::setup() {
+	this->_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    this->_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
+    this->_addrServer.sin_family = AF_INET;
+    this->_addrServer.sin_port = htons(30003);
 
-    bind(socketServer, (const struct sockaddr *)&addrServer, sizeof(addrServer));
-    std::cout << "bind ; " << socketServer << std::endl;
-
-    listen(socketServer, 5);
+	bind(this->_serverSocket, (const struct sockaddr *)&this->_addrServer, sizeof(this->_addrServer));
+    std::cout << "bind ; " << this->_serverSocket << std::endl;
+    listen(this->_serverSocket, 5);
     std::cout << "listen" << std::endl;
-    
-    //int *socketClient = new int;
-    //for(int i = 0; i < 2; i++)
-    //{
-    //    struct sockaddr_in addrClient;
-    //    socklen_t csize = sizeof(addrClient);
-    //    socketClient[i] = accept(socketServer, (struct sockaddr *)&addrClient, &csize);
-    //    std::cout << "accept" << std::endl;
-    //}
-    User user;
-    std::string temp = "Welcome to our IRC ! ;) ";
-    int len = temp.size();
-    const char *msg = temp.c_str();
-    //send(socketClient[0], msg, len, 0);
-    //send(socketClient[1], msg, len, 0);
-    struct pollfd fds[100];
-    //for (int i = 0; i < 2 ; i++){
-    //    fds[i].fd = socketClient[i];
-    //    fds[i].events = POLLIN;
-    //}
-	int i = 1;
-	fds[0].fd = socketServer;
-	fds[0].events = POLLIN;
-    while(1)
-    {
-		int e = poll(fds, i, 10);
-		if(fds[0].revents & POLLIN){
-			int socketClient;
-			struct sockaddr_in addrClient;
-    		socklen_t csize = sizeof(addrClient);
-    		socketClient = accept(socketServer, (struct sockaddr *)&addrClient, &csize);
-    		std::cout << "accept" << std::endl;
-			fds[i].fd = socketClient;
-			fds[i].events = POLLIN;
-			send(fds[i].fd, msg, len, 0);
-			i++;
+}
+
+int Server::addUser(int i) {
+	int len = this->_wlcmsg.size();
+    const char *msg = this->_wlcmsg.c_str();
+	int socketClient;
+	struct sockaddr_in addrClient;
+
+    socklen_t csize = sizeof(addrClient);
+    socketClient = accept(this->_serverSocket, (struct sockaddr *)&addrClient, &csize);
+    std::cout << "accept" << std::endl;
+	this->_fds[i].fd = socketClient;
+	this->_fds[i].events = POLLIN;
+	send(this->_fds[i].fd, msg, len, 0);
+}
+
+void Server::servListen(int i) {
+	User user;
+	for(int x = 1; x < i; x++){
+        	if(this->_fds[x].revents & POLLIN){
+            	if(recv(this->_fds[x].fd, &user, sizeof(User), 0) == 0){
+					std::cout << "USER: " << this->_fds[x].fd << " disconnected." << std::endl;
+					close(this->_fds[x].fd);
+				}
+				else 
+            		std::cout << user.msg << std::endl;
+        	}
 		}
-		for(int x = 1; x < i; x++){
-        if(fds[x].revents & POLLIN){
-            if(recv(fds[x].fd, &user, sizeof(User), 0) == 0){
-				std::cout << "USER: " << fds[x].fd << " disconnected." << std::endl;
-				close(fds[x].fd);
-			}
-			else 
-            	std::cout << user.msg << std::endl;
-        }
-		//if(fds[x].revents & POLLHUP){
-        //    std::cout << "USER: " << fds[x].fd << " disconnected." << std::endl;
-		//	sleep(3);
-        //}
-		}
-	}
-    return 0;
 }
