@@ -65,7 +65,7 @@ void Server::addClients(){
 
 void Server::removeClients(int i){
 	this->_clients--;
-	this->_sclients.erase(this->_sclients.begin() + 6);
+	this->_sclients.erase(this->_sclients.begin() + i);
 	return ;
 }
 
