@@ -24,7 +24,7 @@ void Server::setup() {
 }
 
 void Server::addUser(int i) {
-	if(this->getClients() == 99)
+	if(this->_clients == 99)
 		return ;
 	int len = this->_wlcmsg.size();
     const char *msg = this->_wlcmsg.c_str();
@@ -36,7 +36,7 @@ void Server::addUser(int i) {
 	this->_fds[i].fd = new_cli.socket;
 	this->_fds[i].events = POLLIN;
 	send(this->_fds[i].fd, msg, len, 0);
-	this->addClients();
+	this->_clients++;
 	this->_sclients.push_back(new_cli);
 	return ;
 }
@@ -46,10 +46,10 @@ void Server::servListen(int i) {
 	for(int x = 1; x < i; x++){
         	if(this->_fds[x].revents & POLLIN){
             	if(recv(this->_fds[x].fd, &user, sizeof(User), 0) == 0){
-					std::cout << "USER: [" << this->_fds[x].fd << "]->[" << this->getIP(x -1) <<"] disconnected." << std::endl;
+					std::cout << "USER: [" << this->_fds[x].fd << "]->[" << inet_ntoa(this->_sclients[x-1].addrClient.sin_addr) <<"] disconnected." << std::endl;
 					close(this->_fds[x].fd);
-					this->removeClients(x - 1);
-
+					this->_clients--;
+					this->_sclients.erase(this->_sclients.begin() + (x - 1));
 				}
 				else 
             		std::cout << user.msg << std::endl;
@@ -58,21 +58,6 @@ void Server::servListen(int i) {
 	return ;
 }
 
-void Server::addClients(){
-	this->_clients++;
-	return ;
-}
-
-void Server::removeClients(int i){
-	this->_clients--;
-	this->_sclients.erase(this->_sclients.begin() + i);
-	return ;
-}
-
-int Server::getClients(){
-	return this->_clients;
-}
-
-char *Server::getIP(int i){
-	return (inet_ntoa(this->_sclients[i].addrClient.sin_addr));
+struct pollfd *Server::get_fds(){
+	return this->_fds;
 }

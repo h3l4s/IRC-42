@@ -39,23 +39,19 @@ typedef struct clients{
 
 class Server{
 	public:
-		struct pollfd _fds[100];
-		std::string _wlcmsg = "Welcome to our IRC ! :o";
-		int _serverSocket;
-		struct sockaddr_in _addrServer;
 		Server();
 		~Server();
 		void setup();
 		void addUser(int i);
 		void servListen(int i);
-		void addClients();
-		void removeClients(int i);
-		int getClients();
-		char *getIP(int i);
-
+		struct pollfd *get_fds();
 	private:
+		struct pollfd _fds[100];
 		int _clients;
 		std::vector<clients> _sclients;
+		std::string _wlcmsg = "Welcome to our IRC ! :o";
+		int _serverSocket;
+		struct sockaddr_in _addrServer;
 };
 
 #endif //SERVER_H
