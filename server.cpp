@@ -1,6 +1,6 @@
 #include "server.hpp"
 
-Server::Server(void) {
+Server::Server(void) : _clients(0) {
 	return ;
 }
 
@@ -20,20 +20,25 @@ void Server::setup() {
     std::cout << "listening at : " << ntohs(this->_addrServer.sin_port) << std::endl;
 	this->_fds[0].fd = this->_serverSocket;
 	this->_fds[0].events = POLLIN;
+	return ;
 }
 
-int Server::addUser(int i) {
+void Server::addUser(int i) {
+	if(this->getClients() == 99)
+		return ;
 	int len = this->_wlcmsg.size();
     const char *msg = this->_wlcmsg.c_str();
-	int socketClient;
-	struct sockaddr_in addrClient;
+	clients new_cli;
 
-    socklen_t csize = sizeof(addrClient);
-    socketClient = accept(this->_serverSocket, (struct sockaddr *)&addrClient, &csize);
-    std::cout << "USER: [" << socketClient << "] connected." << std::endl;
-	this->_fds[i].fd = socketClient;
+    new_cli.csize = sizeof(new_cli.addrClient);
+    new_cli.socket = accept(this->_serverSocket, (struct sockaddr *)&new_cli.addrClient, &new_cli.csize);
+    std::cout << "USER: [" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected." << std::endl;
+	this->_fds[i].fd = new_cli.socket;
 	this->_fds[i].events = POLLIN;
 	send(this->_fds[i].fd, msg, len, 0);
+	this->addClients();
+	this->_sclients.push_back(new_cli);
+	return ;
 }
 
 void Server::servListen(int i) {
@@ -41,11 +46,33 @@ void Server::servListen(int i) {
 	for(int x = 1; x < i; x++){
         	if(this->_fds[x].revents & POLLIN){
             	if(recv(this->_fds[x].fd, &user, sizeof(User), 0) == 0){
-					std::cout << "USER: [" << this->_fds[x].fd << "] disconnected." << std::endl;
+					std::cout << "USER: [" << this->_fds[x].fd << "]->[" << this->getIP(x -1) <<"] disconnected." << std::endl;
 					close(this->_fds[x].fd);
+					this->removeClients(x - 1);
+
 				}
 				else 
             		std::cout << user.msg << std::endl;
         	}
 		}
+	return ;
+}
+
+void Server::addClients(){
+	this->_clients++;
+	return ;
+}
+
+void Server::removeClients(int i){
+	this->_clients--;
+	this->_sclients.erase(this->_sclients.begin() + 6);
+	return ;
+}
+
+int Server::getClients(){
+	return this->_clients;
+}
+
+char *Server::getIP(int i){
+	return (inet_ntoa(this->_sclients[i].addrClient.sin_addr));
 }
