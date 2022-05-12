@@ -10,7 +10,7 @@ int main()
 
     addrClient.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrClient.sin_family = AF_INET;
-    addrClient.sin_port = htons(30003);
+    addrClient.sin_port = htons(30002);
 
     connect(socketClient, (const struct sockaddr *)&addrClient, sizeof(addrClient));
     std::cout << "Connecte" << std::endl;

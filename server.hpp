@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <vector>
+#include <list>
 
 typedef struct User{
     int     len;
@@ -41,17 +42,27 @@ class Server{
 	public:
 		Server();
 		~Server();
+
 		void setup();
-		void addUser(int i);
-		void servListen(int i);
+		void addUser();
+		void servListen(std::list<pollfd>::iterator it);
+		void build_fds();
+		void update_revents();
+		void display_fds();
+
 		struct pollfd *get_fds();
+
+		std::list<pollfd> get_lfds();
 	private:
 		struct pollfd _fds[100];
+		struct sockaddr_in _addrServer;
+
 		int _clients;
+		int _serverSocket;
+
 		std::vector<clients> _sclients;
 		std::string _wlcmsg = "Welcome to our IRC ! :o";
-		int _serverSocket;
-		struct sockaddr_in _addrServer;
+		std::list<pollfd> _lfds;
 };
 
 #endif //SERVER_H
