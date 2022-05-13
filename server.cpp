@@ -49,16 +49,16 @@ void Server::addUser()
 
 bool Server::channel_open(std::string channel_name)
 {
-    for (std::list<std::string>::iterator beg = this->_channel.begin(); beg != this->_channel.end(); beg++)
+    for (std::list<std::string>::iterator beg = this->_channels.begin(); beg != this->_channels.end(); beg++)
     {
         if (*beg == channel_name)
         {    
-            std::list<channel>::iterator it = this->_in_channel.begin();
-            while ( it->name != channel_name )
+            std::list<channel>::iterator channel = this->_mb_count.begin();
+            while ( channel->name != channel_name )
             {
-                it++;
+                channel++;
             }
-            it->nb_client++;
+            channel->nb_client++;
             return true;
         }    
     }
@@ -68,13 +68,13 @@ bool Server::channel_open(std::string channel_name)
 void Server::user_left(std::string channel_name)
 {
       
-    std::list<channel>::iterator it = this->_in_channel.begin();
-    while ( it->name != channel_name )
-        it++;
-    it->nb_client--;
-    if (it->nb_client == 0){
-        std::cout << "CHANNEL[" <<  channel_name << "] closed.\n";
-        this->_in_channel.erase(it);
+    std::list<channel>::iterator channel = this->_mb_count.begin();
+    while ( channel->name != channel_name )
+        channel++;
+    channel->nb_client--;
+    if (channel->nb_client == 0){
+        std::cout << "CHANNEL[" <<  channel_name << "] has been closed.\n";
+        this->_mb_count.erase(channel);
     }
     return ;
 }
@@ -107,21 +107,21 @@ void Server::servListen(std::list<pollfd>::iterator it)
             if (it_cli->nb_msg == 0){
                 it_cli->channel.assign(user.msg);
                 std::cout << "CHANNEL[#" << it_cli->channel << "] created.\n";
-                if (this->_channel.empty() == true){
-                    this->_channel.push_back(it_cli->channel);
+                if (this->_channels.empty() == true){
+                    this->_channels.push_back(it_cli->channel);
                     channel channel;
                     channel.name = it_cli->channel;
                     channel.nb_client = 1;
-                    this->_in_channel.push_back(channel);
+                    this->_mb_count.push_back(channel);
                 }
                 else 
                 {
                     if (channel_open(it_cli->channel) == false){
-                        this->_channel.push_back(it_cli->channel);
+                        this->_channels.push_back(it_cli->channel);
                         channel channel;
                         channel.name = it_cli->channel;
                         channel.nb_client = 1;
-                        this->_in_channel.push_back(channel);
+                        this->_mb_count.push_back(channel);
                     }  
 
                 }
@@ -171,8 +171,8 @@ void Server::update_revents( void )
 
 void Server::display_fds( void )
 {
-    std::list<channel>::iterator it = this->_in_channel.begin();
-    std::list<channel>::iterator ite = this->_in_channel.end();
+    std::list<channel>::iterator it = this->_mb_count.begin();
+    std::list<channel>::iterator ite = this->_mb_count.end();
 
     while(it != ite)
     {

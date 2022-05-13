@@ -53,6 +53,7 @@ class Server{
 		void display_fds();
 		bool channel_open(std::string channel_name);
 		void user_left(std::string channel_name);
+
 		struct pollfd *get_fds();
 
 		std::list<pollfd> get_lfds();
@@ -65,9 +66,9 @@ class Server{
 
 		std::string _wlcmsg = "Welcome to our IRC ! enter a channel ";
 		std::list<pollfd> _lfds;
-		std::list<std::string> _channel;
+		std::list<std::string> _channels;
 		std::list<clients> _inf_clients;
-		std::list<channel> _in_channel;
+		std::list<channel> _mb_count;
 };
 
 #endif //SERVER_H
