@@ -46,9 +46,17 @@ typedef struct channel{
 	std::string name;
 }channel;
 
+typedef struct msg{
+	std::string cmd;
+	std::string prefix;
+	std::string args;
+	std::string result[3] = { prefix, cmd, args };
+} msg;
+
 class Server{
 	public:
 		Server();
+		Server( int port);
 		~Server();
 
 		void addUser();
@@ -60,23 +68,34 @@ class Server{
 	private:
 		struct pollfd _fds[100];
 		struct sockaddr_in _addrServer;
+		struct msg _msg;
 
+		int parser(std::string cmd, std::list<pollfd>::iterator it);
+		void global_parsing(std::string s, std::list<pollfd>::iterator it);
+		int choose_option(std::string cmd);
+		int no_arg(struct msg msg, std::list<pollfd>::iterator it);
+		int one_arg(struct msg msg, std::list<pollfd>::iterator it);
+		int multiple_args(struct msg msg, std::list<pollfd>::iterator it);
 		void build_fds();
 		void display_fds();
-		void setup_username( std::string nickname, std::list<clients>::iterator it_cli);
+		void setup_username( std::string nickname, std::list<clients>::iterator it_cli, int first);
 		void setup_password( std::string password, std::list<clients>::iterator it_cli);
 		void user_left( std::list<pollfd>::iterator it );
 		bool channel_open(std::string channel_name);
 		void channel_empty(std::string channel_name);
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
-		
+		void delete_clrf(std::string temp);
+		void what_cmd(std::list<clients>::iterator it_cli);
 		int _clients;
 		int _serverSocket;
 
-		std::string _wlcmsg = "Welcome to our IRC ! enter a channel ";
+		std::string _wlcmsg = ":127.0.0.1 375 user42 ::- 127.0.0.1 Message of the day -\r\n";
+		std::string _wlcmsg2 = ":127.0.0.1 376 user42 ::End of /MOTD command\r\n";
 		std::list<pollfd> _lfds;
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
+		std::vector<std::string> cmd;
+	
 };
 
 #endif //SERVER_H

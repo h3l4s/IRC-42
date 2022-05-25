@@ -1,9 +1,9 @@
 #include "server.hpp"
+#include <stdlib.h> 
 
-
-int main()
+int main(int argc, char **argv)
 {
-	Server server;
+	Server server(std::atoi(argv[1]));
 	std::list<pollfd> temp_lfds = server.get_lfds();
 	std::list<pollfd>::iterator begin = temp_lfds.begin();
 	
@@ -12,10 +12,9 @@ int main()
 		temp_lfds = server.get_lfds();
 		begin = temp_lfds.begin();
 		server.update_revents();
-		pollfd *tmp = server.get_fds();
 		if(poll(server.get_fds(), server.get_lfds().size(), 1)) 
         {
-			if(tmp[0].revents & POLLIN)
+			if(server.get_fds()[0].revents & POLLIN)
 				server.addUser();
 			temp_lfds = server.get_lfds();
 			begin = temp_lfds.begin();
