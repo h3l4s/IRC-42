@@ -169,27 +169,117 @@ void Server::delete_clrf(std::string temp)
     return ;
 }
 
+void Server::setup_host( std::string host, std::list<clients>::iterator it_cli )
+{
+    int zero = 0;
+    std::string::iterator it = host.begin();
+    std::string::iterator position = host.begin();
+    while (it != host.end())
+    {
+        if (*it == ' ')
+        {    
+            zero++;
+            position = it;
+            position++;
+        }
+        it++;
+        if (zero == 2)
+            break;
+    }
+    while (it != host.end())
+    {
+        if (*it == ' ')
+            break;
+        it++;
+    }
+    if (it_cli->host.empty() == false)
+        it_cli->host.clear();
+    it_cli->host.assign(position, it);
+    return ;
+}
+
+
+void Server::commandPART(std::list<clients>::iterator it_cli)
+{
+    it_cli->channel.clear();
+    return ;
+}
+
+
+std::string Server::cut_word_space( std::string to_cut, std::string::iterator it )
+{
+    std::string after_cut;
+    std::string::iterator it_space = it;
+    while (*it_space != ' ')
+        it_space++;
+    
+    after_cut.assign(it, it_space);
+    std::cout << "after = |" << after_cut << "|\n";
+    return after_cut;
+}
+
 void Server::what_cmd(std::list<clients>::iterator it_cli)
 {
-    std::vector<std::string>::iterator it = cmd.begin();
+    std::vector<std::string>::iterator it = this->cmd.begin();
 
     while (it != cmd.end())
     {
-        if (it->find("JOIN ", 0, 5) != std::string::npos)
+        if (it->find("JOIN ", 0, 5) != std::string::npos){
             create_channel(it_cli->socket, it_cli, *it);
+            int position = -1;
+            std::string channel_name;
+            if (it->find('#') != std::string::npos)
+                position = it->find('#');
+            *it = *it + "\r\n";
+            channel_name.assign(it->begin() + position, it->end());
+            std::list<clients>::iterator to_send = this->_user_data.begin(); 
+            *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
+            for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+            {
+                if (channel_name.empty() == false)
+                {
+                    if (it_cli->socket != to_send->socket && it_cli->channel == to_send->channel)
+                        send(to_send->socket, it->c_str() , it->size(), 0);
+                }
+            }
+        }
         else if (it->find("NICK ", 0, 5) != std::string::npos)
             setup_username(*it, it_cli, it->find("NICK", 0, 5));
+        else if (it->find("USER ", 0, 5) != std::string::npos){
+            setup_host(*it, it_cli);
+        }
         else if (it->find("PRIVMSG ", 0, 7) != std::string::npos)
+        {
+            int position = -1;
+            std::string channel_name;
+            if (it->find('#') != std::string::npos)
+                position = it->find('#');
+            *it = *it + "\r\n";
+            if (position != -1)
+                channel_name = cut_word_space(*it, it->begin() + position);
+            std::list<clients>::iterator to_send = this->_user_data.begin(); 
+            *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
+            for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+            {
+                if (channel_name.empty() == false)
+                {
+                    if (it_cli->socket != to_send->socket && it_cli->channel == to_send->channel)
+                        send(to_send->socket, it->c_str() , it->size(), 0);
+                }
+            }
+        }    
+        else if (it->find("PART ", 0, 5) != std::string::npos)
         {
             *it = *it + "\r\n";
             std::list<clients>::iterator to_send = this->_user_data.begin(); 
-            *it = ":" + it_cli->username + "!user42@user42 " + *it;
+            *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
             for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
             {
                 if (it_cli->socket != to_send->socket)
                     send(to_send->socket, it->c_str() , it->size(), 0);
             }
-        }    
+            commandPART(it_cli);
+        } 
         it++;
     }
     return ;
@@ -207,19 +297,25 @@ void Server::servListen(std::list<pollfd>::iterator it)
         temp.assign(user.msg);
         delete_clrf(temp);
         //ici le vector est setup
+        it_cmd = this->cmd.begin();
+        std::cout << "displaying commands in buffer" << std::endl;
+        std::cout << *it_cmd << std::endl;
+        std::list<clients>::iterator it_cli = this->_user_data.begin();  
+        while (it_cli->socket != it->fd)
+            it_cli++;
 		while(it_cmd != this->cmd.end()){
-			parser(*it_cmd, it);
+			parser(*it_cmd, it, it_cli);
 			it_cmd++;
 		}
         if(rec == 0)
             user_left(it);
-		else 
-        {
-            std::list<clients>::iterator it_cli = this->_user_data.begin();  
-            while (it_cli->socket != it->fd)
-                it_cli++;
-            what_cmd(it_cli);
-        }
+		//else 
+        //{
+            //std::list<clients>::iterator it_cli = this->_user_data.begin();  
+            //while (it_cli->socket != it->fd)
+            //    it_cli++;
+            //what_cmd(it_cli);
+        //}
     }
     this->cmd.clear();
     return ;
@@ -274,26 +370,37 @@ void Server::display_fds( void )
 ///////////////////////////////////////////////
 //////////////////////////////////////////////
 /////////////////////////////////////////////
+////////////////////////////////////////////
+///////////////////////////////////////////
+//////////////////////////////////////////
+/////////////////////////////////////////
 
-int Server::no_arg(struct msg msg, std::list<pollfd>::iterator it){
+int Server::no_arg(struct msg msg, std::list<pollfd>::iterator it,
+    std::list<clients>::iterator it_cli ){
 	std::cout << "appear in no_arg" << std::endl;
+    //send it to QUIT function
 	return 0;
 }
 
-int Server::one_arg(struct msg msg, std::list<pollfd>::iterator it){
+int Server::one_arg(struct msg msg, std::list<pollfd>::iterator it,
+    std::list<clients>::iterator it_cli ){
 	std::cout << "appear in one_arg" << std::endl;
-	//need to execute /PASS & /NICK here or redirect
+    if(msg.cmd.find("PASS") != std::string::npos)
+        it_cli->password = msg.args;
+    if(msg.cmd.find("NICK") != std::string::npos)
+        return 0; // SEND IT TO NICK FUNCTION
 	return 0;
 }
 
-int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it){
+int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
+    std::list<clients>::iterator it_cli ){
 	std::cout << "appear in multiple_args" << std::endl;
 	//need to parse the multiple args properly
 	return 0;
 }
 
 int Server::choose_option(std::string cmd){
-	std::string options[13] = { "QUIT", "PASS", "NICK",
+	std::string options[14] = { "QUIT", "PASS", "NICK",
 	"USER", "OPER", "JOIN", "PART", "MODE", "TOPIC",
 	"NAMES", "LIST", "INVITE", "KICK" };
 	int i = 0;
@@ -313,7 +420,8 @@ int Server::choose_option(std::string cmd){
 	return -1;
 }
 
-void Server::global_parsing(std::string s, std::list<pollfd>::iterator it){
+void Server::global_parsing(std::string s, std::list<pollfd>::iterator it,
+    std::list<clients>::iterator it_cli ){
 	std::string delimiter = " ";
 	size_t pos = 0;
 	int i;
@@ -333,16 +441,17 @@ void Server::global_parsing(std::string s, std::list<pollfd>::iterator it){
 		std::cout << "error: command not found." << std::endl;
 		return ;
 	}
-	int (*options_function[4])(struct msg, std::list<pollfd>::iterator) = { no_arg, one_arg, multiple_args };
-	options_function[i](this->_msg, it);
-	return ;
+	//int (*options_function[4])(struct msg, std::list<pollfd>::iterator) = { no_arg, one_arg, multiple_args };
+	//options_function[i](this->_msg, it);
+	(this->*options_ft[i])(this->_msg, it, it_cli);
+    return ;
 }
 
-int Server::parser(std::string cmd, std::list<pollfd>::iterator it){
+int Server::parser(std::string cmd, std::list<pollfd>::iterator it,
+    std::list<clients>::iterator it_cli ){
 	std::string input;
 
 	input.assign(cmd);
-	std::cout << "'" << input << "'" << std::endl;
-	global_parsing(input, it);
+	global_parsing(input, it, it_cli);
 	return 0;
 }

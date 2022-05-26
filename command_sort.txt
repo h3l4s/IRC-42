@@ -28,3 +28,5 @@ SINGLE MULTIPLE ARGS:
 	12 /INVITE <nickname> <channel>
 
 	13 /KICK <channel> <user> [<comment>]
+
+	14 /PRIVMSG <receiver>{,<receiver>} <text to be sent>

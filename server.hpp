@@ -39,6 +39,7 @@ typedef struct clients{
 	std::string password;
 	std::string name;
 	std::string channel;
+	std::string host;
 }clients;
 
 typedef struct channel{
@@ -70,12 +71,13 @@ class Server{
 		struct sockaddr_in _addrServer;
 		struct msg _msg;
 
-		int parser(std::string cmd, std::list<pollfd>::iterator it);
-		void global_parsing(std::string s, std::list<pollfd>::iterator it);
+		int (Server::*options_ft[4])(struct msg, std::list<pollfd>::iterator, std::list<clients>::iterator) = { &Server::no_arg, &Server::one_arg, &Server::multiple_args };
+		int parser(std::string cmd, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli);
+		void global_parsing(std::string s, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli);
 		int choose_option(std::string cmd);
-		int no_arg(struct msg msg, std::list<pollfd>::iterator it);
-		int one_arg(struct msg msg, std::list<pollfd>::iterator it);
-		int multiple_args(struct msg msg, std::list<pollfd>::iterator it);
+		int no_arg(struct msg msg, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli );
+		int one_arg(struct msg msg, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli );
+		int multiple_args(struct msg msg, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli );
 		void build_fds();
 		void display_fds();
 		void setup_username( std::string nickname, std::list<clients>::iterator it_cli, int first);
@@ -86,6 +88,9 @@ class Server{
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
 		void delete_clrf(std::string temp);
 		void what_cmd(std::list<clients>::iterator it_cli);
+		std::string cut_word_space( std::string to_cut, std::string::iterator it );
+		void commandPART(std::list<clients>::iterator it_cli);
+		void setup_host( std::string host, std::list<clients>::iterator it_cli );
 		int _clients;
 		int _serverSocket;
 
