@@ -38,13 +38,14 @@ typedef struct clients{
 	std::string username;
 	std::string password;
 	std::string name;
-	std::string channel;
+	std::list<std::string> channel;
 	std::string host;
 }clients;
 
 typedef struct channel{
 	int nb_client;
 	std::string name;
+	std::list<int> client_socket;
 }channel;
 
 typedef struct msg{
@@ -82,15 +83,22 @@ class Server{
 		void display_fds();
 		void setup_username( std::string nickname, std::list<clients>::iterator it_cli, int first);
 		void setup_password( std::string password, std::list<clients>::iterator it_cli);
+		void setup_host( std::string host, std::list<clients>::iterator it_cli );
 		void user_left( std::list<pollfd>::iterator it );
-		bool channel_open(std::string channel_name);
+		bool channel_open(std::string channel_name, int user);
 		void channel_empty(std::string channel_name);
-		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
+		void commandJOIN( std::list<clients>::iterator it_cli, std::string it );
+		void commandNICK( std::list<clients>::iterator it_cli, std::string it );
+		void commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
+		void commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
+		void commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it, std::string channel_name );
+		void commandPART(std::list<clients>::iterator it_cli, std::string it);
+		void delete_channel(std::list<clients>::iterator it_cli, std::string channel_name);
+		bool is_in_the_channel(std::list<std::string> channel, std::string channel_name);
+		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg, std::string channel_name);
 		void delete_clrf(std::string temp);
 		void what_cmd(std::list<clients>::iterator it_cli);
 		std::string cut_word_space( std::string to_cut, std::string::iterator it );
-		void commandPART(std::list<clients>::iterator it_cli);
-		void setup_host( std::string host, std::list<clients>::iterator it_cli );
 		int _clients;
 		int _serverSocket;
 
