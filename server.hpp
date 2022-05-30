@@ -58,7 +58,7 @@ typedef struct msg{
 class Server{
 	public:
 		Server();
-		Server( int port);
+		Server( int port, std::string password);
 		~Server();
 
 		void addUser();
@@ -108,6 +108,7 @@ class Server{
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
 		std::vector<std::string> cmd;
+		std::string _passwd;
 	
 };
 

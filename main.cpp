@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv)
 {
-	Server server(std::atoi(argv[1]));
+	Server server(std::atoi(argv[1]), argv[2]);
 	std::list<pollfd> temp_lfds = server.get_lfds();
 	std::list<pollfd>::iterator begin = temp_lfds.begin();
 	

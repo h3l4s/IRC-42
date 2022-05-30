@@ -4,7 +4,7 @@ Server::Server(void) {
 	return ;
 }
 
-Server::Server( int port ) : _clients(0) 
+Server::Server( int port, std::string password ) : _clients(0), _passwd(password)
 {
     this->_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     this->_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -369,7 +369,8 @@ void Server::servListen(std::list<pollfd>::iterator it)
         //ici le vector est setup
         it_cmd = this->cmd.begin();
         std::cout << "displaying commands in buffer" << std::endl;
-        std::cout << *it_cmd << std::endl;
+        for(std::vector<std::string>::iterator it_cmd2 = this->cmd.begin(); it_cmd2 != this->cmd.end(); it_cmd2++)
+            std::cout << *it_cmd2 << std::endl;
         std::list<clients>::iterator it_cli = this->_user_data.begin();  
         while (it_cli->socket != it->fd)
             it_cli++;
@@ -378,9 +379,12 @@ void Server::servListen(std::list<pollfd>::iterator it)
 				setup_host(*it_cmd, it_cli);
 			}
 			parser(*it_cmd, it, it_cli);
+            if(it_cmd->find("QUIT") != std::string::npos){
+                return ;
+            }
 			it_cmd++;
 		}
-		if (it_cli->nb_msg == 0)
+		if (it_cli->password == this->_passwd && it_cli->nb_msg == 0)
     	{
         	std::string _wlcmsg = ":127.0.0.1 375 " +  it_cli->username + " ::- 127.0.0.1 Message of the day -\r\n";
 			std::string _wlcmsg2 = ":127.0.0.1 376 " +  it_cli->username + " ::End of /MOTD command\r\n";
@@ -389,6 +393,9 @@ void Server::servListen(std::list<pollfd>::iterator it)
         	send(it_cli->socket, _wlcmsg2.c_str(), _wlcmsg2.size(), 0);
         	it_cli->nb_msg++;
     	}
+        if(it_cli->password != this->_passwd){
+            //call quit command ? or ask for another password with a custom message
+        }
 		if(rec == 0)
             user_left(it);
     }
@@ -453,6 +460,15 @@ void Server::display_fds( void )
 int Server::no_arg(struct msg msg, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
 	std::cout << "appear in no_arg" << std::endl;
+    std::cout << "USER[" << it->fd << "] disconnected." << std::endl;
+    close(it->fd);
+    this->_clients--;
+    std::list<pollfd>::iterator beg = this->_lfds.begin();
+    while (beg->fd != it->fd)
+        beg++;
+    this->_lfds.erase(beg);
+    this->_user_data.erase(it_cli);
+    build_fds();
     //send it to QUIT function
 	return 0;
 }
