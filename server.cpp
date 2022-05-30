@@ -394,6 +394,8 @@ void Server::servListen(std::list<pollfd>::iterator it)
         	it_cli->nb_msg++;
     	}
         if(it_cli->password != this->_passwd){
+            std::string wrong_pass = "error: wrong password. Please reconnect with a correct password.";
+            send(it_cli->socket, wrong_pass.c_str(), wrong_pass.size(), 0);
             //call quit command ? or ask for another password with a custom message
         }
 		if(rec == 0)
