@@ -98,6 +98,7 @@ class Server{
 		void commandNAME(  std::list<clients>::iterator it_cli );
 		void commandLIST(  std::string cmd, std::list<clients>::iterator it_cli );
 		void commandQUIT(  std::string cmd , std::list<clients>::iterator it_cli, std::list<pollfd>::iterator it);
+		void commandNOTICE( std::list<clients>::iterator it_cli, std::string it );
 		void delete_channel(std::list<clients>::iterator it_cli, std::string channel_name);
 		bool is_in_the_channel(std::list<std::string> channel, std::string channel_name);
 		bool is_in_channel(std::string channel, std::list<std::string> channel_list);
