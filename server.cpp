@@ -495,7 +495,6 @@ void Server::servListen(std::list<pollfd>::iterator it)
         rec = recv(it->fd, &rec_char ,sizeof(rec_char), 0);
         temp.assign(rec_char);
         delete_clrf(temp);
-        //ici le vector est setup
         it_cmd = this->cmd.begin();
         //std::cout << "displaying commands in buffer" << std::endl;
         //std::cout << *it_cmd << std::endl;
