@@ -108,6 +108,7 @@ class Server{
 		bool is_in_channel(std::string channel, std::list<std::string> channel_list);
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string channel_name);
 		void delete_clrf(std::string temp);
+		void wlcm_msg(std::list<clients>::iterator it_cli);
 		std::string cut_word_space( std::string to_cut, std::string::iterator it );
 		int _clients;
 		int _serverSocket;
