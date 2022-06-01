@@ -582,7 +582,6 @@ void Server::servListen(std::list<pollfd>::iterator it)
         it_cmd = this->cmd.begin();
 		if(it_cmd == this->cmd.end())
 			return ;
-		std::cout << *it_cmd << std::endl;
         std::list<clients>::iterator it_cli = this->_user_data.begin();
 		while (it_cli->socket != it->fd)
             it_cli++;
@@ -684,14 +683,12 @@ void Server::display_fds( void )
 
 int Server::no_arg(struct msg msg, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
-	std::cout << "appear in no_arg" << std::endl;
     commandQUIT(msg.cmd + " " + msg.args, it_cli, it);
 	return 0;
 }
 
 int Server::one_arg(struct msg msg, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
-	std::cout << "appear in one_arg: " << msg.cmd << std::endl;
     if(msg.cmd.find("PASS") != std::string::npos)
         it_cli->password = msg.args;
     if(msg.cmd.find("NICK") != std::string::npos)
@@ -701,7 +698,6 @@ int Server::one_arg(struct msg msg, std::list<pollfd>::iterator it,
 
 int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
-	std::cout << "appear in multiple_args" << std::endl;
 	int pos;
 	std::string delimiter = ",";
 	std::string temp;
@@ -716,7 +712,6 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 		commandJOIN(it_cli, msg.args);
 		}
 		else{
-			std::cout << "ELSE" << std::endl;
 			commandJOIN(it_cli, msg.args);
 		}
 	}
