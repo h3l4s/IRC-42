@@ -83,7 +83,6 @@ void Server::channel_empty(std::string channel_name)
 void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::string channel_name)
 {
     it_cli->channel.push_back(channel_name);
-	it_cli->oper = 1;
     if (this->_channel_data.size() == 0){
         std::cout << "channel " << channel_name << " creer\n";
         channel channel;
@@ -265,24 +264,57 @@ void Server::commandPART(std::list<clients>::iterator it_cli, std::string it)
     return ;
 }
 
+bool Server::is_in_the_channel(std::list<std::string> channel, std::string channel_name)
+{
+    for (std::list<std::string>::iterator it = channel.begin(); it != channel.end(); it++){
+        if (*it == channel_name)
+            return true;
+    }
+    return false;
+}
+
 void Server::commandJOIN( std::list<clients>::iterator it_cli, std::string it )
 {
     std::string channel_name;
+    std::string channel_count;
+    std::string all_user;
     channel_name = it;
     create_channel(it_cli->socket, it_cli, channel_name);
     it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " JOIN " + it + "\r\n";
+    send(it_cli->socket, it.c_str() , it.size(), 0);
     for(std::list<channel>::iterator to_send = this->_channel_data.begin(); to_send != this->_channel_data.end(); to_send++)
     {
         if (channel_name == to_send->name)
         {
             std::cout << "priv msg channel = |" << it << "|\n";
             for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
-                    if (it_cli->socket != *socket_in_channel)
-                        send(*socket_in_channel, it.c_str() , it.size(), 0);
-					std::cout << "socket_in_channel" <<  *socket_in_channel << std::endl;
+                if (it_cli->socket != *socket_in_channel){
+                    channel_count = ":127.0.0.1 353 " + it_cli->username + " " + channel_name + " :+" + it_cli->username + "\r\n";
+                    send(*socket_in_channel, channel_count.c_str() , channel_count.size(), 0);
+                    std::cout << "channel msg channel = |" << channel_count << "|\n";
+                    channel_count.clear();
+                    channel_count = ":127.0.0.1 366 " + it_cli->username + " " + channel_name + " :End of /NAMES list\r\n";
+                    send(*socket_in_channel, channel_count.c_str() , channel_count.size(), 0);
+                    channel_count.clear();
+                    send(*socket_in_channel, it.c_str() , it.size(), 0);
+                }
+				std::cout << "socket_in_channel" <<  *socket_in_channel << std::endl;
             }
+            break ;
         }
     }
+    it.clear();
+    for (std::list<clients>::iterator all = this->_user_data.begin(); all != this->_user_data.end(); all++)
+    {
+        if (is_in_the_channel(all->channel, channel_name) == true){
+            it = ":127.0.0.1 353 " + it_cli->username + " " + channel_name + " :" + all->username + "\r\n";
+            send(it_cli->socket, it.c_str() , it.size(), 0);
+            it.clear();
+        }
+    }
+    it.clear();
+    it = ":127.0.0.1 366 " + it_cli->username + " " + channel_name + " :End of /NAMES list\r\n";
+    send(it_cli->socket, it.c_str() , it.size(), 0);
 }
 
 void Server::commandNICK( std::list<clients>::iterator it_cli, std::string it )
@@ -292,15 +324,6 @@ void Server::commandNICK( std::list<clients>::iterator it_cli, std::string it )
 	std::cout << "it_cli USERNAME: " << it_cli->username << std::endl;
     std::string output = ":" + old_username + " NICK " + it_cli->username + "\r\n";
     send(it_cli->socket, output.c_str() , output.size(), 0);
-}
-
-bool Server::is_in_the_channel(std::list<std::string> channel, std::string channel_name)
-{
-    for (std::list<std::string>::iterator it = channel.begin(); it != channel.end(); it++){
-        if (*it == channel_name)
-            return true;
-    }
-    return false;
 }
 
 void Server::commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::string message )
@@ -402,6 +425,18 @@ void Server::commandKICK(  std::string cmd , std::list<clients>::iterator it_cli
     to_cut = cmd.find(' ');
     to_cut++;
     channel_name = cut_word_space(cmd, cmd.begin() + to_cut);
+    if (it_cli->oper == false){
+        std::string not_oper = ":127.0.0.1 442 "  + channel_name +  " ::You are not an operator\r\n";
+        std::cout << "cmd = |" << not_oper << "|\n"; 
+        send(it_cli->socket, not_oper.c_str() , not_oper.size(), 0);
+        return ;
+    }
+    if (is_in_channel(channel_name, it_cli->channel) == false){
+        std::string not_in_channel = ":127.0.0.1 442 "  + channel_name +  " ::You are not in the channel\r\n";
+        std::cout << "cmd = |" << not_in_channel << "|\n"; 
+        send(it_cli->socket, not_in_channel.c_str() , not_in_channel.size(), 0);
+        return ;
+    }
     user_temp.assign(cmd.begin()+ to_cut, cmd.end());
     to_cut = user_temp.find(' ');
     to_cut++;
@@ -418,6 +453,7 @@ void Server::commandKICK(  std::string cmd , std::list<clients>::iterator it_cli
     }
 
 }
+
 
 std::string Server::username_with_socket(int socket)
 {
@@ -507,10 +543,11 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
 				next++;
 			if(next->oper == 1)
 				break;
+			next++;
 		}
 		if(next == this->_user_data.end()){
 		next = this->_user_data.begin();
-		while(next != it_cli)
+		while(next != it_cli && next != this->_user_data.end())
 			next++;
 		next++;
 		if(next != this->_user_data.end())
@@ -534,10 +571,10 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
 }
 
 void Server::commandMODE( std::list<clients>::iterator it_cli, std::string username, std::string mode, int sender){
-	if(mode.find("-i") != std::string::npos){
+	if(mode.find("+i") != std::string::npos){
 		it_cli->invisible == 0 ? it_cli->invisible = 1 : it_cli->invisible = 0;
 	}
-	else if(mode.find("-o") != std::string::npos){
+	else if(mode.find("+o") != std::string::npos){
 		if(sender == 0)
 			return ;
 		std::list<clients>::iterator client = this->_user_data.begin();
@@ -550,6 +587,7 @@ void Server::commandMODE( std::list<clients>::iterator it_cli, std::string usern
 }
 
 void Server::commandOPER( std::list<clients>::iterator it_cli, std::string username, std::string password){
+	std::cout << password << this->_operpasswd << std::endl;
 	if(password == this->_operpasswd){
 		commandMODE( it_cli, username, "+o", 1);
 	}
