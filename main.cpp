@@ -1,11 +1,24 @@
 #include "server.hpp"
-#include <stdlib.h> 
+#include <stdlib.h>
+#include <signal.h>
+
+int port = 0;
+
+void	inthandler(int sig)
+{
+	std::cout << "Server is close !\n";
+	close(port);
+	exit(1);
+}
 
 int main(int argc, char **argv)
 {
 	Server server(std::atoi(argv[1]), argv[2]);
 	std::list<pollfd> temp_lfds = server.get_lfds();
 	std::list<pollfd>::iterator begin = temp_lfds.begin();
+
+	signal(SIGINT, inthandler);
+	port = std::atoi(argv[1]);
 	
     while(1)
     {
