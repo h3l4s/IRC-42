@@ -41,6 +41,7 @@ typedef struct clients{
 	std::string host;
 	bool oper;
 	bool invisible;
+	int connected;
 }clients;
 
 typedef struct channel{
