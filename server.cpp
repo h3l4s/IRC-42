@@ -508,8 +508,7 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
 			if(next->oper == 1)
 				break;
 		}
-		if(next != this->_user_data.end())
-			return ;
+		if(next == this->_user_data.end()){
 		next = this->_user_data.begin();
 		while(next != it_cli)
 			next++;
@@ -522,7 +521,7 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
 				next--;
 				next->oper = 1;
 			}
-		}
+		}}
 	}
     close(it->fd);
     this->_clients--;
