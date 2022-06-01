@@ -38,6 +38,8 @@ void Server::addUser()
     new_cli.csize = sizeof(new_cli.addrClient);
     new_cli.socket = accept(this->_serverSocket, (struct sockaddr *)&new_cli.addrClient, &new_cli.csize);
     new_cli.nb_msg = 0;
+	new_cli.oper = 0;
+	new_cli.invisible = 0;
     std::cout << "USER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected." << std::endl;
 	new_fd.fd = new_cli.socket;
 	new_fd.events = POLLIN;
@@ -477,10 +479,15 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
     this->_lfds.erase(beg);
     this->_user_data.erase(it_cli);
     build_fds();
-
 }
 
 void Server::commandMODE( std::list<clients>::iterator it_cli, std::string args){
+	if(args.find("-i") != std::string::npos){
+		it_cli->invisible = 1;
+	}
+	else if(args.find("-o") != std::string::npos){
+		it_cli->oper = 1;
+	}
 	return ;
 }
 
@@ -596,7 +603,7 @@ void Server::display_fds( void )
 int Server::no_arg(struct msg msg, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
 	std::cout << "appear in no_arg" << std::endl;
-    commandQUIT(msg.cmd, it_cli, it);
+    commandQUIT(msg.cmd + " " + msg.args, it_cli, it);
 	return 0;
 }
 
