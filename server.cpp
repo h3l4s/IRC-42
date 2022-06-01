@@ -696,6 +696,9 @@ int Server::choose_option(std::string cmd){
 
 void Server::global_parsing(std::string s, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
+	this->_msg.result[0] = &this->_msg.prefix;
+	this->_msg.result[1] = &this->_msg.cmd;
+	this->_msg.result[2] = &this->_msg.args;
 	std::string delimiter = " ";
 	size_t pos = 0;
 	int i;
@@ -714,6 +717,7 @@ void Server::global_parsing(std::string s, std::list<pollfd>::iterator it,
 		std::cout << "error: command not found." << std::endl;
 		return ;
 	}
+	int (Server::*options_ft[4])(struct msg, std::list<pollfd>::iterator, std::list<clients>::iterator) = { &Server::no_arg, &Server::one_arg, &Server::multiple_args };
 	(this->*options_ft[i])(this->_msg,it, it_cli);
     return ;
 }
