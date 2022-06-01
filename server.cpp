@@ -4,7 +4,7 @@ Server::Server(void) {
 	return ;
 }
 
-Server::Server( int port, std::string password ) : _clients(0), _passwd(password)
+Server::Server( int port, std::string password ) : _clients(0), _passwd(password), _operpasswd("op!")
 {
     this->_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     this->_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -38,7 +38,7 @@ void Server::addUser()
     new_cli.csize = sizeof(new_cli.addrClient);
     new_cli.socket = accept(this->_serverSocket, (struct sockaddr *)&new_cli.addrClient, &new_cli.csize);
     new_cli.nb_msg = 0;
-	new_cli.oper = 0;
+	this->_clients == 0 ? new_cli.oper = 1 : new_cli.oper = 0;
 	new_cli.invisible = 0;
     std::cout << "USER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected." << std::endl;
 	new_fd.fd = new_cli.socket;
@@ -83,6 +83,7 @@ void Server::channel_empty(std::string channel_name)
 void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::string channel_name)
 {
     it_cli->channel.push_back(channel_name);
+	it_cli->oper = 1;
     if (this->_channel_data.size() == 0){
         std::cout << "channel " << channel_name << " creer\n";
         channel channel;
@@ -471,6 +472,30 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
             }
         }
     }
+	if(it_cli->oper == 1){
+		std::list<clients>::iterator next = this->_user_data.begin();
+		while(next != this->_user_data.end()){
+			if(next == it_cli)
+				next++;
+			if(next->oper == 1)
+				break;
+		}
+		if(next != this->_user_data.end())
+			return ;
+		next = this->_user_data.begin();
+		while(next != it_cli)
+			next++;
+		next++;
+		if(next != this->_user_data.end())
+			next->oper = 1;
+		else{
+			next--;
+			if(next != this->_user_data.begin()){
+				next--;
+				next->oper = 1;
+			}
+		}
+	}
     close(it->fd);
     this->_clients--;
     std::list<pollfd>::iterator beg = this->_lfds.begin();
@@ -481,12 +506,25 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
     build_fds();
 }
 
-void Server::commandMODE( std::list<clients>::iterator it_cli, std::string args){
-	if(args.find("-i") != std::string::npos){
-		it_cli->invisible = 1;
+void Server::commandMODE( std::list<clients>::iterator it_cli, std::string username, std::string mode, int sender){
+	if(mode.find("-i") != std::string::npos){
+		it_cli->invisible == 0 ? it_cli->invisible = 1 : it_cli->invisible = 0;
 	}
-	else if(args.find("-o") != std::string::npos){
-		it_cli->oper = 1;
+	else if(mode.find("-o") != std::string::npos){
+		if(sender == 0)
+			return ;
+		std::list<clients>::iterator client = this->_user_data.begin();
+		while(client->username != username && client != this->_user_data.end())
+			client++;
+		if(client != this->_user_data.end())
+			client->oper == 1 ? client->oper = 0 : client->oper = 1;
+	}
+	return ;
+}
+
+void Server::commandOPER( std::list<clients>::iterator it_cli, std::string username, std::string password){
+	if(password == this->_operpasswd){
+		commandMODE( it_cli, username, "+o", 1);
 	}
 	return ;
 }
@@ -538,7 +576,7 @@ void Server::servListen(std::list<pollfd>::iterator it)
             //call quit command ? or ask for another password with a custom message
         }
 		if(rec == 0)
-            user_left(it);
+            commandQUIT("QUIT", it_cli, it);
     }
     //std::cout << "TEST = " << *this->cmd.begin() << std::endl; 
     this->cmd.clear();
@@ -682,7 +720,22 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 		commandNOTICE(it_cli, msg.cmd + " " + msg.args);
 	}
 	if(msg.cmd.find("MODE") != std::string::npos){
-		commandMODE(it_cli, msg.args);
+		if ((pos = msg.args.find(" ")) != std::string::npos) { // splitting using spaces
+			temp = msg.args.substr(0, pos);
+    		msg.args.erase(0, pos + 1);
+		}
+		else
+			return 1;
+		commandMODE(it_cli, temp, msg.args, 0);
+	}
+	if(msg.cmd.find("OPER") != std::string::npos){
+		if ((pos = msg.args.find(" ")) != std::string::npos) { // splitting using spaces
+			temp = msg.args.substr(0, pos);
+    		msg.args.erase(0, pos + 1);
+		}
+		else
+			return 1;
+		commandOPER(it_cli, temp, msg.args);
 	}
 	return 0;
 }
