@@ -391,6 +391,34 @@ void Server::commandNOTICE( std::list<clients>::iterator it_cli, std::string it 
     return ;
 }
 
+void Server::commandKICK(  std::string cmd , std::list<clients>::iterator it_cli )
+{
+    if (this->_channel_data.size() == 0)
+        return ;
+    std::string user_name;
+    std::string user_temp;
+    std::string channel_name;
+    int to_cut;
+    to_cut = cmd.find(' ');
+    to_cut++;
+    channel_name = cut_word_space(cmd, cmd.begin() + to_cut);
+    user_temp.assign(cmd.begin()+ to_cut, cmd.end());
+    to_cut = user_temp.find(' ');
+    to_cut++;
+    user_name = cut_word_space(cmd, user_temp.begin() + to_cut);
+    cmd = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + cmd + "\r\n";
+    for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+    {
+        if (to_send->username == user_name)
+        {
+            std::cout << "priv msg channel = |" << cmd << "|\n";
+            send(to_send->socket, cmd.c_str() , cmd.size(), 0);
+            commandPART(to_send, channel_name);
+        }
+    }
+
+}
+
 std::string Server::username_with_socket(int socket)
 {
     std::list<clients>::iterator it = this->_user_data.begin();
@@ -727,6 +755,9 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 		else
 			return 1;
 		commandMODE(it_cli, temp, msg.args, 0);
+	}
+	if(msg.cmd.find("KICK") != std::string::npos){
+		commandKICK(msg.cmd + " " + msg.args, it_cli);
 	}
 	if(msg.cmd.find("OPER") != std::string::npos){
 		if ((pos = msg.args.find(" ")) != std::string::npos) { // splitting using spaces

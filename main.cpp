@@ -3,12 +3,13 @@
 #include <signal.h>
 
 int port = 0;
+int kill_server = 0;
 
 void	inthandler(int sig)
 {
 	std::cout << "Server is close !\n";
 	close(port);
-	exit(1);
+	kill_server = 1;
 }
 
 int main(int argc, char **argv)
@@ -20,7 +21,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, inthandler);
 	port = std::atoi(argv[1]);
 	
-    while(1)
+    while(1 && kill_server == 0)
     {
 		temp_lfds = server.get_lfds();
 		begin = temp_lfds.begin();
