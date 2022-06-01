@@ -480,6 +480,10 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
 
 }
 
+void Server::commandMODE( std::list<clients>::iterator it_cli, std::string args){
+	return ;
+}
+
 void Server::servListen(std::list<pollfd>::iterator it) 
 {
     char rec_char[500];
@@ -668,7 +672,10 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 		commandLIST(msg.cmd + " " + msg.args, it_cli);
 	}
 	if(msg.cmd.find("NOTICE") != std::string::npos){
-		commandNOTICE(it_cli, msg.cmd + msg.args);
+		commandNOTICE(it_cli, msg.cmd + " " + msg.args);
+	}
+	if(msg.cmd.find("MODE") != std::string::npos){
+		commandMODE(it_cli, msg.args);
 	}
 	return 0;
 }
