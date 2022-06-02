@@ -24,6 +24,12 @@ Server::Server( int port, std::string password ) : _clients(0), _passwd(password
 }
 
 Server::~Server(void) {
+    std::list<pollfd>::iterator it =  this->_lfds.begin();
+    while (it != this->_lfds.end())
+    {
+        close(it->fd);
+        it++;
+    }
 	return ;
 }
 
@@ -108,6 +114,30 @@ void Server::user_left(std::list<pollfd>::iterator it)
     while (it_cli->socket != it->fd)
         it_cli++;
     std::cout << "USER[" << it->fd << "] disconnected." << std::endl;
+    if(it_cli->oper == 1 && this->_user_data.size() > 1){
+		std::list<clients>::iterator next = this->_user_data.begin();
+		while(next != this->_user_data.end()){
+			if(next == it_cli)
+				next++;
+			if(next->oper == 1)
+				break;
+			next++;
+		}
+		if(next == this->_user_data.end()){
+		next = this->_user_data.begin();
+		while(next != it_cli && next != this->_user_data.end())
+			next++;
+		next++;
+		if(next != this->_user_data.end())
+			next->oper = 1;
+		else{
+			next--;
+			if(next != this->_user_data.begin()){
+				next--;
+				next->oper = 1;
+			}
+		}}
+	}
     close(it->fd);
     this->_clients--;
     std::list<pollfd>::iterator beg = this->_lfds.begin();
@@ -140,27 +170,6 @@ void Server::setup_password( std::string password, std::list<clients>::iterator 
     if (it_cli->password.empty() == false)
         it_cli->password.clear();
     it_cli->password.insert(it_cli->password.begin(), password.begin()+6, password.end());
-    return ;
-}
-
-void Server::delete_clrf(std::string temp)
-{
-    std::string first;
-    std::string::iterator it = temp.begin();
-    std::string::iterator position = temp.begin();
-
-    while (it != temp.end())
-    {
-        if (*it == '\r')
-        {
-            first.assign(position, it);
-            this->cmd.push_back(first);
-            first.clear();
-            position = it;
-            position = position + 2;
-        }
-        it++;
-    }
     return ;
 }
 
@@ -499,7 +508,7 @@ void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli,
             }
         }
     }
-	if(it_cli->oper == 1){
+	if(it_cli->oper == 1 && this->_user_data.size() > 1){
 		std::list<clients>::iterator next = this->_user_data.begin();
 		while(next != this->_user_data.end()){
 			if(next == it_cli)
@@ -566,6 +575,42 @@ void Server::wlcm_msg(std::list<clients>::iterator it_cli){
         	it_cli->nb_msg++;
 }
 
+void Server::delete_clrf(std::string temp)
+{
+    std::string first;
+    std::string temp_clrf;
+    std::string::iterator it = temp.begin();
+    std::string::iterator position = temp.begin();
+
+    if(temp.find("\r") == std::string::npos){
+        std::cout << "TEEEEEEEEEEEEEMP = |" << temp << "|\n";
+        this->_concatenate += temp;
+        return ;
+    }
+    while (it != temp.end())
+    {
+        if (*it == '\r' )
+        {
+            first.assign(position, it);
+            temp_clrf = first;
+            if (this->_concatenate.size() != 0)
+            {   
+                first.clear();
+                std::cout << "test = |" << this->_concatenate << "|\n"; 
+                first = this->_concatenate + temp_clrf;
+            }
+            std::cout << "FIRST  = |" << first << "|\n"; 
+            this->cmd.push_back(first);
+            first.clear();
+            position = it;
+            position = position + 2;
+            this->_concatenate.clear();
+        }
+        it++;
+    }
+    return ;
+}
+
 void Server::servListen(std::list<pollfd>::iterator it) 
 {
     char rec_char[500];
@@ -577,9 +622,17 @@ void Server::servListen(std::list<pollfd>::iterator it)
             rec_char[i] ^= rec_char[i];
         }
         rec = recv(it->fd, &rec_char ,sizeof(rec_char), 0);
+        if(rec == 0)
+        {    
+            user_left(it);
+            this->cmd.clear();
+            return;
+        }
         temp.assign(rec_char);
         delete_clrf(temp);
+        std::cout << "cmd = |" << temp << "|\n";
         it_cmd = this->cmd.begin();
+        std::cout << "it = |" << *it_cmd << "|\n";
 		if(it_cmd == this->cmd.end())
 			return ;
         std::list<clients>::iterator it_cli = this->_user_data.begin();
@@ -611,7 +664,7 @@ void Server::servListen(std::list<pollfd>::iterator it)
 				return ;
 			}
 		}
-		if(it_cli->connected == 4){
+		if(it_cli->connected == 4 && rec != 0){
 		while(it_cmd != this->cmd.end()){
 			parser(*it_cmd, it, it_cli);
 			if(it_cmd->find("QUIT") != std::string::npos)
@@ -619,8 +672,6 @@ void Server::servListen(std::list<pollfd>::iterator it)
             it_cmd->clear();
 			it_cmd++;
 		}}
-		if(rec == 0)
-            commandQUIT("QUIT", it_cli, it);
     }
     this->cmd.clear();
     

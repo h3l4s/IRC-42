@@ -119,6 +119,8 @@ class Server{
 		std::vector<std::string> cmd;
 		std::string _passwd;
 		std::string _operpasswd;
+		std::string _concatenate;
+		int check;
 	
 };
 
