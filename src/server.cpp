@@ -13,9 +13,9 @@ Server::Server( int port, std::string password ) : _clients(0), _passwd(password
     struct pollfd lserver;
 
 	bind(this->_serverSocket, (const struct sockaddr *)&this->_addrServer, sizeof(this->_addrServer));
-    std::cout << "bind : " << this->_serverSocket << std::endl;
+    std::cout << "\033[1;36mbind : " << this->_serverSocket << "\033[0m" << std::endl;
     listen(this->_serverSocket, 5);
-    std::cout << "listening at : " << ntohs(this->_addrServer.sin_port) << std::endl;
+    std::cout << "\033[1;36mlistening at : " << ntohs(this->_addrServer.sin_port) << "\033[0m" << std::endl;
 	lserver.fd = this->_serverSocket;
 	lserver.events = POLLIN;
     this->_lfds.push_back(lserver);
@@ -45,7 +45,7 @@ void Server::addUser()
 	this->_clients == 0 ? new_cli.oper = 1 : new_cli.oper = 0;
 	new_cli.invisible = 0;
 	new_cli.connected = 0;
-    std::cout << "USER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected." << std::endl;
+    std::cout << "\033[1;32mUSER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected.\033[0m" << std::endl;
 	new_fd.fd = new_cli.socket;
 	new_fd.events = POLLIN;
 	this->_clients++;
@@ -78,7 +78,7 @@ void Server::channel_empty(std::string channel_name)
     if (it != ite){
         it->nb_client--;
         if (it->nb_client == 0){
-            std::cout << "channel " <<  channel_name << " is close \n";
+            std::cout << "\033[1;31mchannel " <<  channel_name << " has been closed.\033[0m" << std::endl;
             this->_channel_data.erase(it);
         }
     }
@@ -89,7 +89,7 @@ void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::
 {
     it_cli->channel.push_back(channel_name);
     if (this->_channel_data.size() == 0){
-        std::cout << "channel " << channel_name << " creer\n";
+        std::cout << "\033[1;32mchannel " << channel_name << " created.\033[0m" << std::endl;
         channel channel;
         channel.name = channel_name;
         channel.nb_client = 1;
@@ -98,7 +98,7 @@ void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::
     }
     else {
         if (channel_open(channel_name, user) == false){
-            std::cout << "channel " << channel_name << " existe\n";
+            std::cout << "\033[1;37mchannel " << channel_name << " already exists.\033[0m" << std::endl;
             channel channel;
             channel.name = channel_name;
             channel.nb_client = 1;
@@ -113,7 +113,7 @@ void Server::user_left(std::list<pollfd>::iterator it)
     std::list<clients>::iterator it_cli = this->_user_data.begin();   
     while (it_cli->socket != it->fd)
         it_cli++;
-    std::cout << "USER[" << it->fd << "] disconnected." << std::endl;
+    std::cout << "\033[1;31mUSER[" << it->fd << "] disconnected.\033[0m" << std::endl;
     if(it_cli->oper == 1 && this->_user_data.size() > 1){
 		std::list<clients>::iterator next = this->_user_data.begin();
 		while(next != this->_user_data.end()){
@@ -283,7 +283,6 @@ void Server::commandJOIN( std::list<clients>::iterator it_cli, std::string it )
                     //channel_count.clear();
                     send(*socket_in_channel, it.c_str() , it.size(), 0);
                 }
-				std::cout << "socket_in_channel" <<  *socket_in_channel << std::endl;
             }
             break ;
         }
@@ -489,7 +488,7 @@ bool Server::is_in_channel(std::string channel, std::list<std::string> channel_l
 
 void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli, std::list<pollfd>::iterator it)
 {
-    std::cout << "USER[" << it->fd << "] disconnected." << std::endl;
+    std::cout << "\033[1;31mUSER[" << it->fd << "] disconnected.\033[0m" << std::endl;
     cmd = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + cmd + "\r\n";
     for(std::list<channel>::iterator to_send = this->_channel_data.begin(); to_send != this->_channel_data.end(); to_send++)
     {
@@ -552,7 +551,6 @@ void Server::commandMODE( std::list<clients>::iterator it_cli, std::string usern
 }
 
 void Server::commandOPER( std::list<clients>::iterator it_cli, std::string username, std::string password){
-	std::cout << password << this->_operpasswd << std::endl;
 	if(password == this->_operpasswd){
 		commandMODE( it_cli, username, "+o", 1);
 	}
@@ -576,7 +574,6 @@ void Server::delete_clrf(std::string temp)
     std::string::iterator position = temp.begin();
 
     if(temp.find("\r") == std::string::npos){
-        std::cout << "TEEEEEEEEEEEEEMP = |" << temp << "|\n";
         this->_concatenate += temp;
         return ;
     }
@@ -589,10 +586,8 @@ void Server::delete_clrf(std::string temp)
             if (this->_concatenate.size() != 0)
             {   
                 first.clear();
-                std::cout << "test = |" << this->_concatenate << "|\n"; 
                 first = this->_concatenate + temp_clrf;
             }
-            std::cout << "FIRST  = |" << first << "|\n"; 
             this->cmd.push_back(first);
             first.clear();
             position = it;
@@ -623,16 +618,14 @@ void Server::servListen(std::list<pollfd>::iterator it)
         }
         temp.assign(rec_char);
         delete_clrf(temp);
-        std::cout << "cmd = |" << temp << "|\n";
         it_cmd = this->cmd.begin();
-        std::cout << "it = |" << *it_cmd << "|\n";
 		if(it_cmd == this->cmd.end())
 			return ;
         std::list<clients>::iterator it_cli = this->_user_data.begin();
 		while (it_cli->socket != it->fd)
             it_cli++;
 		while(it_cmd != this->cmd.end() && it_cli->connected < 3){
-			std::cout << it_cli->connected << std::endl;
+			std::cout << "\033[1;33m    connection status: " << it_cli->connected << "\033[0m" << std::endl;
 			if(it_cmd->find("NICK") != std::string::npos && it_cli->connected == 1){
 				parser(*it_cmd, it, it_cli);
 				it_cli->connected++;
@@ -869,7 +862,7 @@ void Server::global_parsing(std::string s, std::list<pollfd>::iterator it,
 	*this->_msg.result[i] = s;
 	i = choose_option(*this->_msg.result[1]);
 	if(i == -1){
-		std::cout << "error: command not found." << std::endl;
+        std::cout << "\033[1;31merror: command not found.\033[0m" << std::endl;
 		return ;
 	}
 	int (Server::*options_ft[4])(struct msg, std::list<pollfd>::iterator, std::list<clients>::iterator) = { &Server::no_arg, &Server::one_arg, &Server::multiple_args };
